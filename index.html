@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EquityLens Multi-Source | Stock Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        #helpModal { transition: opacity 0.3s ease-in-out; }
+        .toggle-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen p-4 md:p-8 font-sans">
+    <div class="max-w-6xl mx-auto">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-4xl font-black tracking-tight text-blue-900 flex items-center gap-2">
+                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    EquityLens <span class="text-slate-400 font-light text-2xl">Multi-Source</span>
+                </h1>
+                <p class="text-slate-500 font-medium">Cross-verify market data across leading financial APIs</p>
+            </div>
+            <button onclick="toggleHelp(true)" class="bg-white shadow-sm border border-slate-200 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl hover:text-blue-600 transition-all">?</button>
+        </header>
+
+        <!-- Help Modal -->
+        <div id="helpModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative">
+                <button onclick="toggleHelp(false)" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2">✕</button>
+                <h2 class="text-2xl font-black text-slate-900 mb-4">About EquityLens</h2>
+                <p class="text-slate-600 leading-relaxed mb-4">Technical analyzer developed by <strong>Saurabh Gayali</strong>.</p>
+                <p class="text-sm text-blue-600 font-medium pt-4 border-t">Support: saurabh.gayali@gmail.com</p>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="glass-card rounded-3xl shadow-2xl p-6 md:p-8 mb-8 border border-white">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Data Provider</label>
+                    <select id="apiProvider" onchange="handleProviderChange()" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
+                        <option value="alphavantage">Alpha Vantage</option>
+                        <option value="rapidapi_yahoo">Yahoo Finance (RapidAPI)</option>
+                        <option value="twelvedata">Twelve Data</option>
+                        <option value="polygon">Polygon.io</option>
+                        <option value="finnhub">Finnhub</option>
+                    </select>
+                </div>
+                <div class="md:col-span-4">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">API Secret Key</label>
+                    <input type="password" id="apiKey" placeholder="Authentication required" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Ticker Symbol</label>
+                    <input type="text" id="symbol" placeholder="IBM" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl uppercase font-bold text-blue-700">
+                </div>
+                <div class="md:col-span-2 flex items-end">
+                    <button onclick="fetchStockData()" id="fetchBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95">Analyze</button>
+                </div>
+            </div>
+            
+            <div id="providerInfo" class="mt-6 pt-6 border-t border-slate-100 text-sm"></div>
+            <div id="statusMessage" class="hidden mt-4 p-4 rounded-xl text-sm border flex items-center gap-3"></div>
+        </div>
+
+        <!-- Charts Area -->
+        <div id="loading" class="hidden text-center py-20 bg-white rounded-3xl mb-8">
+            <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-100 border-t-blue-600 mx-auto"></div>
+        </div>
+
+        <div id="chartsArea" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Chart 1: Market Trend -->
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 id="mainChartTitle" class="text-sm font-bold text-slate-400 uppercase tracking-widest">Market Trend</h3>
+                    <div class="flex bg-slate-100 rounded-lg p-1">
+                        <button onclick="updateViewMode('rank')" id="btnRank" class="toggle-btn active text-[10px] px-3 py-1 rounded-md font-bold uppercase transition-all">Rank</button>
+                        <button onclick="updateViewMode('price')" id="btnPrice" class="toggle-btn text-[10px] px-3 py-1 rounded-md font-bold uppercase transition-all">Price</button>
+                    </div>
+                </div>
+                <div class="h-80"><canvas id="mainChart"></canvas></div>
+            </div>
+
+            <!-- Chart 2: Elite Tier -->
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 id="topChartTitle" class="text-sm font-bold text-slate-400 uppercase tracking-widest">Elite Tier Analysis</h3>
+                    <select id="niftySelector" onchange="renderCharts(currentLabels, currentRanks, currentRawPrices)" class="text-[10px] font-bold uppercase bg-slate-100 border-none rounded-lg px-2 py-1 outline-none">
+                        <option value="50">Nifty 50</option>
+                        <option value="100" selected>Nifty 100</option>
+                    </select>
+                </div>
+                <div id="top100Msg" class="hidden h-80 flex items-center justify-center text-slate-400 italic">No Elite Tier entry found.</div>
+                <div class="h-80" id="topChartContainer"><canvas id="topChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+        let currentRawPrices = [];
+        let currentRanks = [];
+        let currentLabels = [];
+        let viewMode = 'rank';
+        
+        const providerConfigs = {
+            alphavantage: { name: "Alpha Vantage", symbolHint: "IBM", link: "https://www.alphavantage.co/support/#api-key" },
+            rapidapi_yahoo: { name: "Yahoo Finance (RapidAPI)", symbolHint: "IBM", link: "https://rapidapi.com/apidojo/api/yahoo-finance1" },
+            twelvedata: { name: "Twelve Data", symbolHint: "RELIANCE:NSE", link: "https://twelvedata.com/pricing" },
+            polygon: { name: "Polygon.io", symbolHint: "AAPL", link: "https://polygon.io/pricing" },
+            finnhub: { name: "Finnhub", symbolHint: "TSLA", link: "https://finnhub.io/register" }
+        };
+
+        const formatAxisDate = (dateInput) => {
+            const date = new Date(dateInput);
+            if (isNaN(date.getTime())) return dateInput;
+            
+            // Format to "Feb 25" style
+            const month = date.toLocaleString('default', { month: 'short' });
+            const year = date.getFullYear().toString().substr(-2);
+            return `${month} ${year}`;
+        };
+
+        function toggleHelp(show) { document.getElementById('helpModal').classList.toggle('hidden', !show); }
+
+        window.onload = () => {
+            handleProviderChange();
+            currentLabels = Array.from({length: 20}, (_, i) => {
+                const d = new Date();
+                d.setMonth(d.getMonth() - (20 - i));
+                return d.toISOString().split('T')[0];
+            });
+            currentRawPrices = Array.from({length: 20}, () => Math.random() * 100 + 100);
+            currentRanks = mapToRanks(currentRawPrices);
+            handleVisualization("DUMMY", true);
+        };
+
+        function handleProviderChange() {
+            const provider = document.getElementById('apiProvider').value;
+            const config = providerConfigs[provider];
+            document.getElementById('apiKey').value = localStorage.getItem(`api_key_${provider}`) || "";
+            document.getElementById('symbol').placeholder = `e.g. ${config.symbolHint}`;
+            document.getElementById('providerInfo').innerHTML = `<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100"><span class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold">${config.name}</span><a href="${config.link}" target="_blank" class="text-blue-600 font-bold">Get API Key</a></div>`;
+        }
+
+        function updateViewMode(mode) {
+            viewMode = mode;
+            document.getElementById('btnRank').classList.toggle('active', mode === 'rank');
+            document.getElementById('btnPrice').classList.toggle('active', mode === 'price');
+            renderCharts(currentLabels, currentRanks, currentRawPrices);
+        }
+
+        async function fetchStockData() {
+            const provider = document.getElementById('apiProvider').value;
+            const key = document.getElementById('apiKey').value.trim();
+            let symbol = document.getElementById('symbol').value.toUpperCase().trim() || "IBM";
+            
+            if (!key) { handleVisualization(symbol, true); return; }
+            localStorage.setItem(`api_key_${provider}`, key);
+            
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('statusMessage').classList.add('hidden');
+
+            try {
+                if (provider === 'alphavantage') {
+                    // Alpha Vantage: Monthly data for depth (10+ years)
+                    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${key}`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    
+                    if (data['Error Message'] || data['Note'] || data['Information']) {
+                        throw new Error(data['Error Message'] || data['Note'] || data['Information'] || "Invalid API Response.");
+                    }
+
+                    const ts = data['Monthly Time Series'] || data['Monthly Adjusted Time Series'];
+                    if (!ts) throw new Error("Security data not found. Please verify symbol and key.");
+
+                    const keys = Object.keys(ts).sort(); 
+                    currentLabels = keys.map(k => k); 
+                    currentRawPrices = keys.map(k => {
+                        const dayData = ts[k];
+                        return parseFloat(dayData['4. close'] || dayData['5. adjusted close']);
+                    });
+                    currentRanks = mapToRanks(currentRawPrices);
+
+                } else if (provider === 'rapidapi_yahoo') {
+                    // Yahoo Finance: Changed range to 10y and interval to 1mo for long-term historical view
+                    const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?interval=1mo&region=US&symbol=${symbol}&range=10y`;
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'x-rapidapi-key': key,
+                            'x-rapidapi-host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
+                        }
+                    });
+                    const data = await response.json();
+                    const result = data.chart?.result?.[0];
+                    if (!result) throw new Error("Failed to load Yahoo data.");
+                    const timestamps = result.timestamp;
+                    const closes = result.indicators?.quote?.[0]?.close;
+                    if (!timestamps || !closes) throw new Error("No pricing data available.");
+
+                    const validData = timestamps.map((t, i) => ({ t: t * 1000, v: closes[i] })).filter(item => item.v !== null);
+                    currentLabels = validData.map(d => new Date(d.t).toISOString().split('T')[0]); 
+                    currentRawPrices = validData.map(d => d.v);
+                    currentRanks = mapToRanks(currentRawPrices);
+                } else {
+                    throw new Error("Provider integration coming soon. Please use Alpha Vantage or Yahoo.");
+                }
+
+                handleVisualization(symbol, false, currentLabels, currentRanks, providerConfigs[provider].name);
+
+            } catch (err) {
+                showStatus(`Error: ${err.message}`, "error");
+                handleVisualization(symbol, true);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function mapToRanks(prices) {
+            const max = Math.max(...prices);
+            const min = Math.min(...prices);
+            return prices.map(p => {
+                const range = max - min;
+                return range === 0 ? 500 : Math.round(500 - ((p - min) / range * 499) + 1);
+            });
+        }
+
+        function handleVisualization(symbol, isDummy, labels = [], ranks = [], provider = "") {
+            if (isDummy) {
+                currentLabels = Array.from({length: 20}, (_, i) => {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() - (20 - i));
+                    return d.toISOString().split('T')[0];
+                });
+                currentRawPrices = Array.from({length: 20}, () => Math.random() * 100 + 100);
+                currentRanks = mapToRanks(currentRawPrices);
+            }
+            document.getElementById('mainChartTitle').innerText = `${isDummy ? 'SIMULATION' : provider} | ${symbol}`;
+            renderCharts(currentLabels, currentRanks, currentRawPrices);
+        }
+
+        function renderCharts(labels, rankData, priceData) {
+            // Standardizing labels to Feb 25 style using formatAxisDate
+            const formattedLabels = labels.map(l => formatAxisDate(l));
+            
+            const displayData = viewMode === 'rank' ? rankData : priceData;
+            const displayLabel = viewMode === 'rank' ? 'Composite Rank' : 'Stock Price';
+            renderLine('mainChart', formattedLabels, displayData, displayLabel, '#3b82f6', viewMode === 'rank');
+
+            const niftyLimit = parseInt(document.getElementById('niftySelector').value);
+            let firstIdx = -1;
+            let lastIdx = -1;
+            const filteredData = rankData.map((v, i) => {
+                if (v <= niftyLimit) {
+                    if (firstIdx === -1) firstIdx = i;
+                    lastIdx = i;
+                    return v;
+                }
+                return null;
+            });
+
+            const hasTop = firstIdx !== -1;
+            document.getElementById('top100Msg').classList.toggle('hidden', hasTop);
+            document.getElementById('topChartContainer').classList.toggle('hidden', !hasTop);
+
+            if (hasTop) {
+                const trimmedLabels = formattedLabels.slice(firstIdx, lastIdx + 1);
+                const trimmedData = filteredData.slice(firstIdx, lastIdx + 1);
+                renderLine('topChart', trimmedLabels, trimmedData, `Nifty ${niftyLimit} Rank`, '#10b981', true);
+            }
+        }
+
+        function renderLine(id, labels, data, label, color, reverseY) {
+            if (charts[id]) charts[id].destroy();
+            charts[id] = new Chart(document.getElementById(id), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{ 
+                        label: label, 
+                        data: data, 
+                        borderColor: color, 
+                        backgroundColor: color + '22',
+                        tension: 0.3, 
+                        fill: true, 
+                        borderWidth: 3,
+                        pointRadius: 2,
+                        spanGaps: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                        y: { 
+                            reverse: reverseY,
+                            grid: { color: '#f1f5f9' },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { 
+                                font: { size: 10 }, 
+                                maxRotation: 45, 
+                                minRotation: 45,
+                                autoSkip: true,
+                                maxTicksLimit: 12
+                            }
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#0f172a',
+                            padding: 12,
+                            titleFont: { size: 12, weight: 'bold' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showStatus(text, type) {
+            const msg = document.getElementById('statusMessage');
+            msg.innerText = text;
+            msg.className = `mt-4 p-4 rounded-xl text-sm border ${type === 'error' ? 'bg-red-50 text-red-800 border-red-100' : 'bg-blue-50 text-blue-800 border-blue-100'}`;
+            msg.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
