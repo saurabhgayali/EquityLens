@@ -3,64 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EquityLens Multi-Source | Stock Analyzer</title>
+    <title>EquityLens | Multi-API Stock Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --accent: #2563eb; --border: #e2e8f0; }
-        .theme-dark { --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --accent: #38bdf8; --border: #334155; }
-        .theme-solarized { --bg: #fdf6e3; --card: #eee8d5; --text: #586e75; --accent: #b58900; --border: #d5c4a1; }
+        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --accent: #2563eb; --border: #e2e8f0; --input: #ffffff; }
+        .theme-dark { --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --accent: #38bdf8; --border: #334155; --input: #0f172a; }
+        .theme-solarized { --bg: #fdf6e3; --card: #eee8d5; --text: #586e75; --accent: #b58900; --border: #d5c4a1; --input: #fdf6e3; }
 
         body { background-color: var(--bg); color: var(--text); transition: all 0.3s ease; }
         .glass-card { background-color: var(--card); border: 1px solid var(--border); }
         .toggle-btn.active { background-color: var(--accent); color: white; border-color: var(--accent); }
-        select, input { background-color: var(--bg) !important; color: var(--text) !important; border-color: var(--border) !important; }
+        select, input { background-color: var(--input) !important; color: var(--text) !important; border-color: var(--border) !important; }
         
         #helpModal { transition: opacity 0.3s ease-in-out; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+            .glass-card { border: 1px solid #eee !important; shadow: none !important; box-shadow: none !important; break-inside: avoid; }
+            #chartsArea { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
+            canvas { max-width: 100% !important; height: auto !important; }
+        }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8 font-sans">
-    <div class="max-w-6xl mx-auto">
+<body class="min-h-screen p-4 md:p-8 font-sans theme-light">
+    <div id="contentToExport" class="max-w-6xl mx-auto">
         
         <!-- Header -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 no-print">
             <div>
                 <h1 class="text-4xl font-black tracking-tight flex items-center gap-2">
                     <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                     EquityLens
                 </h1>
-                <p class="opacity-60 font-medium">Cross-verify market data across leading financial APIs</p>
+                <p class="opacity-60 font-medium">Market data cross-verification system</p>
+                <p class="text-[10px] opacity-40 font-semibold mt-1">Free API keys have limited access. If some symbol code shows no data, try paid API services.</p>
             </div>
             
             <div class="flex items-center gap-4">
                 <div class="flex bg-slate-200/50 p-1 rounded-xl">
-                    <button onclick="setTheme('light')" class="px-3 py-1 text-xs font-bold uppercase rounded-lg hover:bg-white/50">Light</button>
-                    <button onclick="setTheme('dark')" class="px-3 py-1 text-xs font-bold uppercase rounded-lg hover:bg-white/50">Dark</button>
-                    <button onclick="setTheme('solarized')" class="px-3 py-1 text-xs font-bold uppercase rounded-lg hover:bg-white/50">Solar</button>
+                    <button onclick="setTheme('light')" class="px-3 py-1 text-[10px] font-bold uppercase rounded-lg hover:bg-white/50">Light</button>
+                    <button onclick="setTheme('dark')" class="px-3 py-1 text-[10px] font-bold uppercase rounded-lg hover:bg-white/50">Dark</button>
+                    <button onclick="setTheme('solarized')" class="px-3 py-1 text-[10px] font-bold uppercase rounded-lg hover:bg-white/50">Solar</button>
                 </div>
                 <button onclick="toggleHelp(true)" class="glass-card shadow-sm text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xl hover:text-blue-600 transition-all">?</button>
             </div>
         </header>
 
-        <!-- Help Modal -->
-        <div id="helpModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="glass-card rounded-3xl shadow-2xl max-w-md w-full p-8 relative">
-                <button onclick="toggleHelp(false)" class="absolute top-4 right-4 opacity-50 hover:opacity-100 p-2">✕</button>
-                <h2 class="text-2xl font-black mb-4">About EquityLens</h2>
-                <p class="opacity-70 leading-relaxed mb-4">Technical analyzer developed by <strong>Saurabh Gayali</strong>.</p>
-                <p class="text-sm text-blue-600 font-medium pt-4 border-t border-slate-200">Support: saurabh.gayali@gmail.com</p>
-            </div>
-        </div>
-
         <!-- Configuration -->
-        <div class="glass-card rounded-3xl shadow-2xl p-6 md:p-8 mb-8">
+        <div class="glass-card rounded-3xl shadow-2xl p-6 md:p-8 mb-8 no-print">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div class="md:col-span-3">
                     <label class="block text-xs font-bold opacity-50 uppercase mb-2">Data Provider</label>
                     <select id="apiProvider" onchange="handleProviderChange()" class="w-full p-3 rounded-xl font-semibold outline-none border">
+                        <option value="marketstack">Marketstack</option>
                         <option value="alphavantage">Alpha Vantage</option>
-                        <option value="rapidapi_yahoo">Yahoo Finance (RapidAPI)</option>
+                        <option value="rapidapi_yahoo">Nokia/ Yahoo Finance (RapidAPI)</option>
                         <option value="twelvedata">Twelve Data</option>
+                        <option value="eodhd">EODHD</option>
                     </select>
                 </div>
                 <div class="md:col-span-4">
@@ -69,7 +70,7 @@
                 </div>
                 <div class="md:col-span-3">
                     <label class="block text-xs font-bold opacity-50 uppercase mb-2">Ticker Symbol</label>
-                    <input type="text" id="symbol" placeholder="IBM" class="w-full p-3 rounded-xl border outline-none uppercase font-bold text-blue-600">
+                    <input type="text" id="symbol" placeholder="AAPL" class="w-full p-3 rounded-xl border outline-none uppercase font-bold text-blue-600">
                 </div>
                 <div class="md:col-span-2 flex items-end">
                     <button onclick="fetchStockData()" id="fetchBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95">Analyze</button>
@@ -81,16 +82,15 @@
         </div>
 
         <!-- Charts Area -->
-        <div id="loading" class="hidden text-center py-20 glass-card rounded-3xl mb-8">
+        <div id="loading" class="hidden text-center py-20 glass-card rounded-3xl mb-8 no-print">
             <div class="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-blue-600 mx-auto"></div>
         </div>
 
-        <div id="chartsArea" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Chart 1: Market Trend -->
+        <div id="chartsArea" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div class="glass-card p-6 rounded-3xl shadow-sm">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 id="mainChartTitle" class="text-sm font-bold opacity-40 uppercase tracking-widest">Market Trend</h3>
-                    <div class="flex bg-slate-100/10 rounded-lg p-1">
+                    <h3 id="mainChartTitle" class="text-sm font-bold opacity-40 uppercase tracking-widest">DUMMY</h3>
+                    <div class="flex bg-slate-100/10 rounded-lg p-1 no-print">
                         <button onclick="updateViewMode('rank')" id="btnRank" class="toggle-btn active text-[10px] px-3 py-1 rounded-md font-bold uppercase transition-all">Rank</button>
                         <button onclick="updateViewMode('price')" id="btnPrice" class="toggle-btn text-[10px] px-3 py-1 rounded-md font-bold uppercase transition-all">Price</button>
                     </div>
@@ -98,17 +98,49 @@
                 <div class="h-80"><canvas id="mainChart"></canvas></div>
             </div>
 
-            <!-- Chart 2: Elite Tier (Scatter Plot) -->
             <div class="glass-card p-6 rounded-3xl shadow-sm">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 id="topChartTitle" class="text-sm font-bold opacity-40 uppercase tracking-widest">Elite Tier Analysis</h3>
-                    <select id="niftySelector" onchange="renderCharts(currentLabels, currentRanks, currentRawPrices)" class="text-[10px] font-bold uppercase border-none rounded-lg px-2 py-1 outline-none">
-                        <option value="50">Nifty 50</option>
-                        <option value="100" selected>Nifty 100</option>
+                    <h3 id="topChartTitle" class="text-sm font-bold opacity-40 uppercase tracking-widest">RANK TREND</h3>
+                    <select id="niftySelector" onchange="updateTopChartOnly()" class="text-[10px] font-bold uppercase border-none rounded-lg px-2 py-1 outline-none no-print">
+                        <option value="50">Top 50</option>
+                        <option value="100" selected>Top 100</option>
+                        <option value="200">Top 200</option>
                     </select>
                 </div>
-                <div id="top100Msg" class="hidden h-80 flex items-center justify-center opacity-40 italic">No Elite Tier entry found.</div>
                 <div class="h-80" id="topChartContainer"><canvas id="topChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-4 justify-end mt-8 no-print">
+            <button onclick="window.print()" class="flex items-center gap-2 bg-slate-800 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                Download PDF
+            </button>
+            <button onclick="window.print()" class="flex items-center gap-2 border-2 border-slate-800 text-slate-800 px-6 py-3 rounded-xl font-bold hover:bg-slate-100 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="glass-card rounded-3xl shadow-2xl max-w-md w-full p-8 relative">
+            <button onclick="toggleHelp(false)" class="absolute top-4 right-4 opacity-50 hover:opacity-100 p-2">✕</button>
+            <h2 class="text-2xl font-black mb-4">Support</h2>
+            <p class="opacity-70 leading-relaxed mb-4">
+                Market analyzer developed by <strong>Saurabh Gayali</strong>
+                <a href="mailto:saurabh.gayali@gmail.com" class="inline-flex items-center ml-1 text-blue-600 hover:text-blue-800">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path></svg>
+                </a>.
+            </p>
+            <div class="flex items-center gap-2 pt-4 border-t border-slate-200">
+                <span class="text-xs font-bold uppercase opacity-50">Support Development:</span>
+                <a href="https://paypal.me/saurabhgayali" target="_blank" class="inline-flex items-center gap-1 bg-yellow-400 text-slate-900 px-3 py-1 rounded-lg text-xs font-bold hover:bg-yellow-500 transition-all">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M20.067 8.178c-.652-3.72-2.946-5.453-6.527-5.453H6.438a.86.86 0 00-.853.733L3.05 19.382a.57.57 0 00.563.658h3.361l.89-5.637a.86.86 0 01.853-.733h1.868c3.31 0 5.923-1.345 6.68-5.013.351-1.706.162-3.08-.8-4.479z"/></svg>
+                    Donate
+                </a>
             </div>
         </div>
     </div>
@@ -120,11 +152,14 @@
         let currentLabels = [];
         let viewMode = 'rank';
         let currentDisplaySymbol = "DUMMY";
+        let isRealData = false;
         
         const providerConfigs = {
+            marketstack: { name: "Marketstack", symbolHint: "AAPL", link: "https://marketstack.com/signup" },
             alphavantage: { name: "Alpha Vantage", symbolHint: "IBM", link: "https://www.alphavantage.co/support/#api-key" },
-            rapidapi_yahoo: { name: "Yahoo Finance (RapidAPI)", symbolHint: "IBM", link: "https://rapidapi.com/apidojo/api/yahoo-finance1" },
-            twelvedata: { name: "Twelve Data", symbolHint: "RELIANCE:NSE", link: "https://twelvedata.com/pricing" }
+            rapidapi_yahoo: { name: "Nokia/ Yahoo Finance (RapidAPI)", symbolHint: "AAPL", link: "https://rapidapi.com/apidojo/api/yahoo-finance1" },
+            twelvedata: { name: "Twelve Data", symbolHint: "AAPL", link: "https://twelvedata.com/pricing" },
+            eodhd: { name: "EODHD", symbolHint: "AAPL.US", link: "https://eodhd.com/register" }
         };
 
         function setTheme(theme) {
@@ -136,9 +171,7 @@
         const formatAxisDate = (dateInput) => {
             const date = new Date(dateInput);
             if (isNaN(date.getTime())) return dateInput;
-            const month = date.toLocaleString('default', { month: 'short' });
-            const year = date.getFullYear().toString().substr(-2);
-            return `${month} ${year}`;
+            return date.toLocaleString('default', { month: 'short', year: '2-digit' });
         };
 
         function toggleHelp(show) { document.getElementById('helpModal').classList.toggle('hidden', !show); }
@@ -147,7 +180,7 @@
             const savedTheme = localStorage.getItem('eq_theme') || 'light';
             setTheme(savedTheme);
             handleProviderChange();
-            handleVisualization("DUMMY", true);
+            loadDummyData();
         };
 
         function handleProviderChange() {
@@ -162,18 +195,62 @@
             viewMode = mode;
             document.getElementById('btnRank').classList.toggle('active', mode === 'rank');
             document.getElementById('btnPrice').classList.toggle('active', mode === 'price');
+            const formattedLabels = currentLabels.map(l => formatAxisDate(l));
+            const displayData = mode === 'rank' ? currentRanks : currentRawPrices;
+            const displayLabel = mode === 'rank' ? 'Rank' : 'Price';
+            const title = isRealData ? currentDisplaySymbol : "DUMMY";
+            document.getElementById('mainChartTitle').innerText = `${mode.toUpperCase()} | ${title}`;
+            renderChart('mainChart', 'line', formattedLabels, displayData, displayLabel, mode === 'rank');
+        }
+
+        function updateTopChartOnly() {
+            const formattedLabels = currentLabels.map(l => formatAxisDate(l));
+            const limit = parseInt(document.getElementById('niftySelector').value);
+            const scatterPoints = [];
+            const regX = [];
+
+            currentRanks.forEach((v, i) => {
+                if (v <= limit) {
+                    scatterPoints.push({ x: i, y: v, label: formattedLabels[i] });
+                    regX.push(i);
+                }
+            });
+
+            if (scatterPoints.length > 1) {
+                const { slope, intercept } = calculateRegression(regX, scatterPoints.map(p => p.y));
+                const minX = Math.min(...regX) - 10;
+                const maxX = Math.max(...regX) + 10;
+                const trendline = [
+                    { x: minX, y: slope * minX + intercept },
+                    { x: maxX, y: slope * maxX + intercept }
+                ];
+                renderScatterChart('topChart', scatterPoints, trendline, formattedLabels, limit);
+            } else {
+                renderScatterChart('topChart', scatterPoints, [], formattedLabels, limit);
+            }
+        }
+
+        function loadDummyData() {
+            isRealData = false;
+            currentDisplaySymbol = "DUMMY";
+            currentLabels = Array.from({length: 60}, (_, i) => {
+                const d = new Date();
+                d.setMonth(d.getMonth() - (60 - i));
+                return d.toISOString().split('T')[0];
+            });
+            currentRawPrices = Array.from({length: 60}, (_, i) => 100 + (i * 1.5) + (Math.random() * 25));
+            currentRanks = mapToRanks(currentRawPrices);
             renderCharts(currentLabels, currentRanks, currentRawPrices);
         }
 
         async function fetchStockData() {
             const provider = document.getElementById('apiProvider').value;
             const key = document.getElementById('apiKey').value.trim();
-            let symbol = document.getElementById('symbol').value.toUpperCase().trim();
+            const symbol = document.getElementById('symbol').value.toUpperCase().trim();
             
-            // Logic: if key OR symbol empty -> load dummy
             if (!key || !symbol) {
-                showStatus("Missing credentials. Loading simulation...", "info");
-                handleVisualization("DUMMY", true);
+                showStatus("Missing API Key or Symbol. Loading DUMMY data.", "info");
+                loadDummyData();
                 return;
             }
 
@@ -182,47 +259,59 @@
             document.getElementById('statusMessage').classList.add('hidden');
 
             try {
-                if (provider === 'alphavantage') {
+                if (provider === 'marketstack') {
+                    const url = `https://api.marketstack.com/v1/eod?access_key=${key}&symbols=${symbol}&limit=3650`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error.message || "Marketstack Error");
+                    const sorted = data.data.reverse();
+                    currentLabels = sorted.map(d => d.date.split('T')[0]);
+                    currentRawPrices = sorted.map(d => d.close);
+                } else if (provider === 'alphavantage') {
                     const url = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${key}`;
                     const res = await fetch(url);
                     const data = await res.json();
-                    if (data['Error Message'] || data['Note'] || data['Information']) throw new Error(data['Error Message'] || data['Note'] || "Invalid Response");
-                    const ts = data['Monthly Time Series'] || data['Monthly Adjusted Time Series'];
-                    if (!ts) throw new Error("Data not found.");
-                    const keys = Object.keys(ts).sort(); 
-                    currentLabels = keys; 
-                    currentRawPrices = keys.map(k => parseFloat(ts[k]['4. close'] || ts[k]['5. adjusted close']));
-                    currentRanks = mapToRanks(currentRawPrices);
-                } else if (provider === 'rapidapi_yahoo') {
-                    const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?interval=1mo&region=US&symbol=${symbol}&range=10y`;
-                    const response = await fetch(url, {
-                        method: 'GET',
-                        headers: { 'x-rapidapi-key': key, 'x-rapidapi-host': 'apidojo-yahoo-finance-v1.p.rapidapi.com' }
-                    });
-                    const data = await response.json();
-                    const result = data.chart?.result?.[0];
-                    if (!result) throw new Error("Failed to load Yahoo data.");
-                    const validData = result.timestamp.map((t, i) => ({ t: t * 1000, v: result.indicators?.quote?.[0]?.close[i] })).filter(item => item.v !== null);
-                    currentLabels = validData.map(d => new Date(d.t).toISOString().split('T')[0]); 
-                    currentRawPrices = validData.map(d => d.v);
-                    currentRanks = mapToRanks(currentRawPrices);
+                    if (data['Error Message'] || data['Note'] || data['Information']) throw new Error("AlphaVantage Failure/Limit");
+                    const ts = data['Monthly Time Series'];
+                    if (!ts) throw new Error("No data returned for this symbol.");
+                    const keys = Object.keys(ts).sort();
+                    currentLabels = keys;
+                    currentRawPrices = keys.map(k => parseFloat(ts[k]['4. close']));
                 } else if (provider === 'twelvedata') {
                     const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1month&outputsize=120&apikey=${key}`;
                     const res = await fetch(url);
                     const data = await res.json();
                     if (data.status === 'error') throw new Error(data.message);
-                    const sortedData = data.values.reverse();
-                    currentLabels = sortedData.map(d => d.datetime);
-                    currentRawPrices = sortedData.map(d => parseFloat(d.close));
-                    currentRanks = mapToRanks(currentRawPrices);
+                    const sorted = data.values.reverse();
+                    currentLabels = sorted.map(d => d.datetime);
+                    currentRawPrices = sorted.map(d => parseFloat(d.close));
+                } else if (provider === 'rapidapi_yahoo') {
+                    const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?interval=1mo&region=US&symbol=${symbol}&range=10y`;
+                    const response = await fetch(url, { headers: { 'x-rapidapi-key': key, 'x-rapidapi-host': 'apidojo-yahoo-finance-v1.p.rapidapi.com' } });
+                    const data = await response.json();
+                    const result = data.chart?.result?.[0];
+                    if (!result) throw new Error("Yahoo Finance Data Failure");
+                    const valid = result.timestamp.map((t, i) => ({ t: t * 1000, v: result.indicators?.quote?.[0]?.close[i] })).filter(x => x.v);
+                    currentLabels = valid.map(d => new Date(d.t).toISOString().split('T')[0]);
+                    currentRawPrices = valid.map(d => d.v);
+                } else if (provider === 'eodhd') {
+                    const url = `https://eodhd.com/api/eod/${symbol}?api_token=${key}&fmt=json&period=m&from=2015-01-01`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (!Array.isArray(data)) throw new Error("EODHD Invalid Response");
+                    currentLabels = data.map(d => d.date);
+                    currentRawPrices = data.map(d => d.close);
                 }
 
+                currentRanks = mapToRanks(currentRawPrices);
                 currentDisplaySymbol = symbol;
-                handleVisualization(symbol, false, currentLabels, currentRanks, providerConfigs[provider].name);
+                isRealData = true;
+                renderCharts(currentLabels, currentRanks, currentRawPrices);
+                showStatus(`Successfully loaded data for ${symbol}`, "success");
 
             } catch (err) {
-                showStatus(`Error: ${err.message}. Loading simulation...`, "error");
-                handleVisualization("DUMMY", true);
+                showStatus(`API Error: ${err.message}. Reverting to DUMMY.`, "error");
+                loadDummyData();
             } finally {
                 document.getElementById('loading').classList.add('hidden');
             }
@@ -231,39 +320,19 @@
         function mapToRanks(prices) {
             const max = Math.max(...prices);
             const min = Math.min(...prices);
-            return prices.map(p => {
-                const range = max - min;
-                return range === 0 ? 500 : Math.round(500 - ((p - min) / range * 499) + 1);
-            });
-        }
-
-        function handleVisualization(symbol, isDummy, labels = [], ranks = [], provider = "") {
-            if (isDummy) {
-                currentDisplaySymbol = "DUMMY";
-                currentLabels = Array.from({length: 60}, (_, i) => {
-                    const d = new Date();
-                    d.setMonth(d.getMonth() - (60 - i));
-                    return d.toISOString().split('T')[0];
-                });
-                currentRawPrices = Array.from({length: 60}, (_, i) => 100 + (i * 2) + (Math.random() * 20));
-                currentRanks = mapToRanks(currentRawPrices);
-            }
-            document.getElementById('mainChartTitle').innerText = `${isDummy ? 'DUMMY' : provider} | ${currentDisplaySymbol}`;
-            document.getElementById('topChartTitle').innerText = `Elite Tier | ${currentDisplaySymbol}`;
-            renderCharts(currentLabels, currentRanks, currentRawPrices);
+            const range = max - min;
+            return prices.map(p => range === 0 ? 500 : Math.round(500 - ((p - min) / range * 499) + 1));
         }
 
         function calculateRegression(x, y) {
             const n = x.length;
-            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            let sx = 0, sy = 0, sxy = 0, sxx = 0;
             for (let i = 0; i < n; i++) {
-                sumX += x[i];
-                sumY += y[i];
-                sumXY += x[i] * y[i];
-                sumXX += x[i] * x[i];
+                sx += x[i]; sy += y[i];
+                sxy += x[i] * y[i]; sxx += x[i] * x[i];
             }
-            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-            const intercept = (sumY - slope * sumX) / n;
+            const slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+            const intercept = (sy - slope * sx) / n;
             return { slope, intercept };
         }
 
@@ -271,45 +340,20 @@
             const formattedLabels = labels.map(l => formatAxisDate(l));
             const displayData = viewMode === 'rank' ? rankData : priceData;
             const displayLabel = viewMode === 'rank' ? 'Rank' : 'Price';
+            const title = isRealData ? currentDisplaySymbol : "DUMMY";
             
-            // Chart 1: Line Chart
-            renderChart('mainChart', 'line', formattedLabels, displayData, displayLabel, '#3b82f6', viewMode === 'rank');
+            document.getElementById('mainChartTitle').innerText = `${viewMode.toUpperCase()} | ${title}`;
+            document.getElementById('topChartTitle').innerText = `RANK TREND | ${title}`;
 
-            // Chart 2: Scatter Plot with Trendline
-            const niftyLimit = parseInt(document.getElementById('niftySelector').value);
-            const scatterData = [];
-            const regressionX = [];
-            const regressionY = [];
-
-            rankData.forEach((v, i) => {
-                if (v <= niftyLimit) {
-                    scatterData.push({ x: i, y: v, label: formattedLabels[i] });
-                    regressionX.push(i);
-                    regressionY.push(v);
-                }
-            });
-
-            const hasTop = scatterData.length > 0;
-            document.getElementById('top100Msg').classList.toggle('hidden', hasTop);
-            document.getElementById('topChartContainer').classList.toggle('hidden', !hasTop);
-
-            if (hasTop) {
-                const { slope, intercept } = calculateRegression(regressionX, regressionY);
-                // Extend trendline beyond min/max
-                const minX = Math.min(...regressionX) - 5;
-                const maxX = Math.max(...regressionX) + 5;
-                
-                const trendlineData = [
-                    { x: minX, y: slope * minX + intercept },
-                    { x: maxX, y: slope * maxX + intercept }
-                ];
-
-                renderScatter('topChart', scatterData, trendlineData, formattedLabels, niftyLimit);
-            }
+            renderChart('mainChart', 'line', formattedLabels, displayData, displayLabel, viewMode === 'rank');
+            updateTopChartOnly();
         }
 
-        function renderChart(id, type, labels, data, label, color, reverseY) {
+        function renderChart(id, type, labels, data, label, reverseY) {
             if (charts[id]) charts[id].destroy();
+            const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#2563eb';
+            const border = getComputedStyle(document.body).getPropertyValue('--border').trim() || '#e2e8f0';
+
             charts[id] = new Chart(document.getElementById(id), {
                 type: type,
                 data: {
@@ -317,81 +361,97 @@
                     datasets: [{ 
                         label: label, 
                         data: data, 
-                        borderColor: color, 
-                        backgroundColor: color + '22',
+                        borderColor: accent, 
+                        backgroundColor: accent + '11',
                         tension: 0.3, 
                         fill: true, 
-                        borderWidth: 2,
-                        pointRadius: 0
+                        pointRadius: 2,
+                        pointHoverRadius: 5,
+                        borderWidth: 2
                     }]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     scales: { 
                         y: { reverse: reverseY, ticks: { font: { size: 9 } } },
-                        x: { ticks: { font: { size: 9 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 10 } }
+                        x: { 
+                            ticks: { font: { size: 9 }, maxTicksLimit: 12 },
+                            grid: { display: false }
+                        }
                     },
-                    plugins: { legend: { display: false } }
-                }
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                title: () => '',
+                                label: (context) => `${context.parsed.y}`
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    afterDraw: chart => {
+                        if (chart.tooltip?._active?.length) {
+                            let x = chart.tooltip._active[0].element.x;
+                            let yAxis = chart.scales.y;
+                            let ctx = chart.ctx;
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.moveTo(x, yAxis.top);
+                            ctx.lineTo(x, yAxis.bottom);
+                            ctx.lineWidth = 1;
+                            ctx.strokeStyle = accent + '88';
+                            ctx.setLineDash([5, 5]);
+                            ctx.stroke();
+
+                            ctx.fillStyle = accent;
+                            ctx.font = 'bold 9px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(chart.data.labels[chart.tooltip._active[0].index], x, yAxis.bottom + 15);
+                            ctx.restore();
+                        }
+                    }
+                }]
             });
         }
 
-        function renderScatter(id, data, trend, allLabels, limit) {
+        function renderScatterChart(id, points, trend, allLabels, limit) {
             if (charts[id]) charts[id].destroy();
-            const accentColor = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#3b82f6';
+            const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#2563eb';
             
             charts[id] = new Chart(document.getElementById(id), {
                 type: 'scatter',
                 data: {
                     datasets: [
-                        {
-                            label: 'Elite Entry',
-                            data: data,
-                            backgroundColor: '#10b981',
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        },
-                        {
-                            label: 'Trendline',
-                            data: trend,
-                            type: 'line',
-                            borderColor: accentColor,
-                            borderDash: [5, 5],
-                            borderWidth: 2,
-                            fill: false,
-                            pointRadius: 0
-                        }
+                        { label: 'Rank', data: points, backgroundColor: '#10b981', pointRadius: 4 },
+                        { label: 'Trend', data: trend, type: 'line', borderColor: accent, borderWidth: 2, borderDash: [5, 5], fill: false, pointRadius: 0 }
                     ]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true, 
+                    maintainAspectRatio: false,
                     scales: {
-                        y: { 
-                            reverse: true, 
-                            min: 0, 
-                            max: limit + 20, 
-                            title: { display: true, text: 'Rank', font: { size: 10 } }
-                        },
+                        y: { reverse: true, min: 1, max: limit + 20, ticks: { font: { size: 9 } } },
                         x: {
                             type: 'linear',
-                            min: Math.min(...data.map(d => d.x)) - 5,
-                            max: Math.max(...data.map(d => d.x)) + 5,
-                            ticks: {
-                                callback: (value) => allLabels[Math.round(value)] || '',
-                                font: { size: 9 }
-                            }
+                            min: points.length ? Math.min(...points.map(p => p.x)) - 10 : 0,
+                            max: points.length ? Math.max(...points.map(p => p.x)) + 10 : 100,
+                            ticks: { callback: (val) => allLabels[Math.round(val)] || '', font: { size: 9 } }
                         }
                     },
-                    plugins: {
+                    plugins: { 
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: (ctx) => {
-                                    if (ctx.datasetIndex === 0) {
-                                        return ` Rank: ${ctx.raw.y} (${ctx.raw.label})`;
-                                    }
-                                    return null;
-                                }
+                                label: (context) => `Rank: ${context.parsed.y}`
                             }
                         }
                     }
@@ -402,7 +462,7 @@
         function showStatus(text, type) {
             const msg = document.getElementById('statusMessage');
             msg.innerText = text;
-            msg.className = `mt-4 p-4 rounded-xl text-sm border ${type === 'error' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`;
+            msg.className = `mt-4 p-4 rounded-xl text-sm border ${type === 'error' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20'}`;
             msg.classList.remove('hidden');
         }
     </script>
