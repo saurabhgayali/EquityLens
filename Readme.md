@@ -1,6 +1,6 @@
 # EquityLens
 
-**EquityLens** is a lightweight, static stock data visualization tool designed to explore how price trends and rank-based interpretations behave across different data sources — especially when data is incomplete or inconsistent.
+**EquityLens** is a lightweight, static stock data visualization tool designed to explore how price trends and rank-based interpretations behave across different data sources - especially when data is incomplete or inconsistent.
 
 The project emphasizes **data reliability, interpretability, and visualization choices**, rather than prediction or trading signals.
 
