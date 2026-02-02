@@ -5,7 +5,7 @@
 The project emphasizes **data reliability, interpretability, and visualization choices**, rather than prediction or trading signals.
 
 **Live demo (GitHub Pages):**  
-<ADD YOUR GITHUB PAGES LINK HERE>
+https://saurabhgayali.github.io/EquityLens/
 
 ---
 
